@@ -74,6 +74,13 @@ export const ADMIN_ONLY_ACTIONS: ReadonlySet<string> = new Set<string>([
   CB.checkRun,
   CB.broadcastAudience,
   CB.statsRefresh,
+  // Admin boshqaruvi: panelga kiradi, so'ng requireRole('SUPERADMIN') tekshiradi.
+  CB.adminList,
+  CB.adminOpen,
+  CB.adminAdd,
+  CB.adminRevoke,
+  CB.adminRevokeYes,
+  CB.adminRole,
   ...Object.values(ADMIN_CB),
 ]);
 
@@ -98,6 +105,7 @@ export const CONVERSATION = Object.freeze({
   checkReject: 'admin_check_reject',
   checkRun: 'admin_check_run',
   broadcast: 'admin_broadcast',
+  adminGrant: 'admin_admin_grant',
 });
 
 // ─────────────────────────── Callback argumentlari ───────────────────────────

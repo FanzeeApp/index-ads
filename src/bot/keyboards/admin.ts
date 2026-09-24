@@ -1,6 +1,8 @@
 import type { CampaignStatus, CarStatus, CheckStatus } from '@prisma/client';
 import type { InlineKeyboard } from 'grammy';
 import { t } from '../../i18n/index.js';
+import { GRANTABLE_ROLES, type GrantableRole } from '../../services/adminService.js';
+import type { AppRole } from '../bot.js';
 import { buildCallback, CB } from '../callbacks.js';
 import {
   backButton,
@@ -25,8 +27,13 @@ export type BroadcastAudience = (typeof BROADCAST_AUDIENCE)[keyof typeof BROADCA
 
 const FIRST_PAGE = 1;
 
-/** Admin panelining bosh menyusi. Har bir tugma darhol ro'yxatning 1-sahifasini ochadi. */
-export const adminMenuKeyboard = (): InlineKeyboard =>
+/**
+ * Admin panelining bosh menyusi. Har bir tugma darhol ro'yxatning 1-sahifasini ochadi.
+ *
+ * `role` berilmasa "Adminlar" tugmasi KO'RSATILMAYDI. Tugmani yashirish — faqat
+ * qulaylik: haqiqiy himoya callback qatlamida (`requireRole('SUPERADMIN')`).
+ */
+export const adminMenuKeyboard = (role?: AppRole): InlineKeyboard =>
   inlineGrid(
     [
       { text: t.admin.cars, data: buildCallback(CB.carList, LIST_FILTER_ALL, FIRST_PAGE) },
@@ -36,6 +43,9 @@ export const adminMenuKeyboard = (): InlineKeyboard =>
       { text: t.admin.checks, data: buildCallback(CB.checkList, LIST_FILTER_ALL, FIRST_PAGE) },
       { text: t.admin.stats, data: buildCallback(CB.statsRefresh) },
       { text: t.admin.broadcast, data: buildCallback(CB.broadcastAudience) },
+      ...(role === 'SUPERADMIN'
+        ? [{ text: t.admin.adminsButton, data: buildCallback(CB.adminList, FIRST_PAGE) }]
+        : []),
       { text: t.admin.settings, data: buildCallback(CB.adminSettings) },
     ],
     2,
@@ -262,3 +272,63 @@ export const broadcastAudienceKeyboard = (): InlineKeyboard =>
 
 export const statsKeyboard = (): InlineKeyboard =>
   inlineGrid([{ text: t.kb.refresh, data: buildCallback(CB.statsRefresh) }, menuButton()], 2);
+
+// ───────────────────────────── Adminlar ─────────────────────────────
+
+const GRANTABLE_ROLE_LABELS: Readonly<Record<GrantableRole, string>> = Object.freeze({
+  ADMIN: t.admin.adminRoleAdmin,
+  OPERATOR: t.admin.adminRoleOperator,
+});
+
+/** `adm.ls:<page>` */
+export const adminListKeyboard = (
+  rows: readonly ListRow[],
+  page: number,
+  totalPages: number,
+): InlineKeyboard =>
+  listKeyboard({
+    rows,
+    openAction: CB.adminOpen,
+    pagination: { action: CB.adminList, page, totalPages },
+    footerRows: [[{ text: t.admin.adminAdd, data: buildCallback(CB.adminAdd) }, menuButton()]],
+  });
+
+/**
+ * Admin kartochkasi. `locked` — superadmin (env yoki DB): unda o'zgartirish
+ * tugmalari umuman chizilmaydi, chunki bu huquq Railway sozlamalarida turadi.
+ */
+export const adminDetailKeyboard = (userId: string, locked: boolean): InlineKeyboard => {
+  const actions: readonly InlineButton[] = locked
+    ? []
+    : [
+        { text: t.admin.adminChangeRole, data: buildCallback(CB.adminRole, userId) },
+        { text: t.admin.adminRevoke, data: buildCallback(CB.adminRevoke, userId) },
+      ];
+
+  return inlineGrid(
+    [...actions, backButton(buildCallback(CB.adminList, FIRST_PAGE)), menuButton()],
+    2,
+  );
+};
+
+/** `adm.rl:<userId>:<GrantableRole>` — SUPERADMIN bu ro'yxatda yo'q. */
+export const adminRoleKeyboard = (userId: string): InlineKeyboard =>
+  inlineGrid(
+    [
+      ...GRANTABLE_ROLES.map((role) => ({
+        text: GRANTABLE_ROLE_LABELS[role],
+        data: buildCallback(CB.adminRole, userId, role),
+      })),
+      backButton(buildCallback(CB.adminOpen, userId)),
+    ],
+    2,
+  );
+
+export const adminRevokeConfirmKeyboard = (userId: string): InlineKeyboard =>
+  inlineGrid(
+    [
+      { text: t.common.confirm, data: buildCallback(CB.adminRevokeYes, userId) },
+      { text: t.common.cancel, data: buildCallback(CB.adminOpen, userId) },
+    ],
+    2,
+  );

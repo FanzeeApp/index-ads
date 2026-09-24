@@ -426,6 +426,61 @@ export const uz = {
     broadcastNoAudience: '⚠️ Bu guruhda birorta qabul qiluvchi yo\'q.',
     broadcastPreview: (text: string, count: number) =>
       `📢 <b>Ko'rib chiqing</b>\n\n${text}\n\n👥 Qabul qiluvchilar: <b>${count}</b>`,
+
+    // ─── Adminlar (faqat superadmin uchun) ───
+    adminsButton: '👮 Adminlar',
+    adminsTitle: (total: number) => `👮 <b>Adminlar</b> — jami ${total} ta`,
+    adminStats: (s: { superadmins: number; admins: number; operators: number }) =>
+      `👑 Superadmin: ${s.superadmins} · 🛠 Admin: ${s.admins} · 👁 Operator: ${s.operators}`,
+    adminListRow: (who: string, role: string, locked: boolean) =>
+      locked ? `🔒 ${role} · ${who}` : `${role} · ${who}`,
+    adminAdd: '➕ Admin qo\'shish',
+    adminAddPrompt:
+      '👤 Kimga huquq beramiz?\n\n' +
+      '• Telegram username — <code>@foydalanuvchi</code>\n' +
+      '• Telegram ID — <code>123456789</code>\n' +
+      '• Telefon — <code>+998901234567</code>\n\n' +
+      'Eng qulayi: o\'sha odamning istalgan xabarini shu yerga <b>forward</b> qiling.',
+    adminNotFound: '🔍 Bunday foydalanuvchi topilmadi.',
+    adminNotStarted:
+      'ℹ️ Huquq berish uchun odam avval botga kirgan bo\'lishi shart. ' +
+      'Unga ayting: botga /start bossin, keyin qayta urinib ko\'ring.',
+    adminAlreadyHasRole: 'ℹ️ Bu foydalanuvchida allaqachon shu huquq bor.',
+    adminSelfRevoke: '⛔️ O\'zingizdan huquqni olib tashlay olmaysiz.',
+    adminEnvLocked:
+      '🔒 Bu superadmin Railway sozlamalarida (SUPER_ADMIN_IDS) belgilangan — ' +
+      'bot orqali o\'zgartirib bo\'lmaydi. O\'zgartirish uchun Railway → Variables ni tahrirlang.',
+    adminCannotGrantAdvertiser:
+      '⛔️ Reklama beruvchiga admin huquqi berilmaydi — rollar aralashib ketmasligi kerak.',
+    adminPickRole: (who: string) => `👤 <b>${who}</b>\n\nQaysi huquq beriladi?`,
+    adminRoleSuperadmin: '👑 Superadmin',
+    adminRoleAdmin: '🛠 Admin',
+    adminRoleOperator: '👁 Operator',
+    adminChangeRole: '🔁 Rolni o\'zgartirish',
+    adminRevoke: '❌ Huquqni olib tashlash',
+    adminGrantConfirm: (who: string, role: string) =>
+      `⚠️ <b>${who}</b> ga <b>${role}</b> huquqi beriladi. Tasdiqlaysizmi?`,
+    adminGranted: (who: string, role: string) => `✅ ${who} — endi ${role}.`,
+    adminGrantedNotice: (role: string) =>
+      `🎉 Sizga <b>${role}</b> huquqi berildi.\n\nPanelga kirish: /admin`,
+    adminRevokeConfirm: (who: string) =>
+      `⚠️ <b>${who}</b> dan admin huquqi olib tashlanadi. Tasdiqlaysizmi?`,
+    adminRevoked: (who: string) => `✅ ${who} dan huquq olib tashlandi.`,
+    adminRevokedNotice:
+      '🔕 Sizdan admin huquqi olib tashlandi.\n\n' +
+      'Botdan oddiy foydalanuvchi sifatida foydalanish uchun /start bosing.',
+    adminDetail: (a: {
+      name: string;
+      username: string;
+      telegramId: string;
+      role: string;
+      created: string;
+    }) =>
+      `👮 <b>${a.name}</b>\n\n` +
+      `Username: ${a.username}\n` +
+      `🆔 Telegram ID: <code>${a.telegramId}</code>\n` +
+      `🎖 Rol: ${a.role}\n` +
+      `🗓 Qo'shilgan: ${a.created}`,
   },
 
   advertiser: {

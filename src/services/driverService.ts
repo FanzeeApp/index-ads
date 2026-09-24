@@ -1,7 +1,7 @@
 import { Prisma, Role } from '@prisma/client';
 import type { Car, Driver, User } from '@prisma/client';
 import { prisma } from '../db/client.js';
-import { env } from '../config/env.js';
+import { isEnvSuperAdmin } from '../config/superAdmins.js';
 import { PAGE_SIZE } from '../config/constants.js';
 import { ValidationError } from '../core/errors.js';
 import { t } from '../i18n/index.js';
@@ -37,8 +37,6 @@ const DRIVER_INCLUDE = { user: true, cars: true } satisfies Prisma.DriverInclude
 /** Telegramga hali ulanmagan (admin oldindan kiritgan) yozuvlar shu shart bilan topiladi. */
 const PENDING_USER: Prisma.DriverWhereInput = { user: { telegramId: null } };
 
-const isSuperAdmin = (telegramId: number): boolean => env.SUPER_ADMIN_IDS.includes(telegramId);
-
 /** Rolni faqat ko'taramiz: mavjud ADMIN/OPERATOR huquqi /start bosilganda pasaymasligi kerak. */
 const resolveRoleUpgrade = (current: Role | undefined, superAdmin: boolean): { role?: Role } =>
   superAdmin && current !== Role.SUPERADMIN ? { role: Role.SUPERADMIN } : {};
@@ -57,7 +55,7 @@ const isAdminBlocked = (existing: ExistingUser): boolean =>
 
 export const upsertUserFromTelegram = async (tg: TelegramUserInput): Promise<User> => {
   const telegramId = BigInt(tg.id);
-  const superAdmin = isSuperAdmin(tg.id);
+  const superAdmin = isEnvSuperAdmin(tg.id);
   const existing: ExistingUser = await prisma.user.findUnique({
     where: { telegramId },
     include: { driver: { select: { isActive: true } } },

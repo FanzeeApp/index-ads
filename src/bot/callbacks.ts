@@ -61,6 +61,14 @@ export const CB = Object.freeze({
 
   broadcastAudience: 'bc.aud',
   statsRefresh: 'st.rf',
+
+  /** Admin boshqaruvi — faqat SUPERADMIN uchun. */
+  adminList: 'adm.ls',
+  adminOpen: 'adm.op',
+  adminAdd: 'adm.new',
+  adminRevoke: 'adm.rv',
+  adminRevokeYes: 'adm.rvy',
+  adminRole: 'adm.rl',
 } as const);
 
 export type CallbackAction = (typeof CB)[keyof typeof CB];

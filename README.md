@@ -106,6 +106,7 @@ Uch xil foydalanuvchi bitta botda ishlaydi:
 - 📋 **Tekshiruvlar**: qo'lda tasdiqlash / rad etish (sabab bilan)
 - 📊 **Statistika**: bajarilish foizi, javobsizlar, kunlik hisobot
 - 📢 **Ommaviy xabar**: 1000+ haydovchiga Telegram limitiga rioya qilgan holda (22 xabar/sek)
+- 👮 **Adminlar** (faqat superadmin): bot ichidan ADMIN / OPERATOR qo'shish va huquqni olib tashlash
 
 ### Haydovchi uchun
 - 📷 **Faqat kamera** — jonli kamera oqimi, sahifada fayl tanlash elementi umuman yo'q,
@@ -346,7 +347,7 @@ BOT_TOKEN=<@BotFather bergan token>
 BOT_USERNAME=<bot username, @ siz>
 BOT_MODE=polling          # mahalliyda polling — domen kerak emas
 DATABASE_URL=postgresql://adsbot:adsbot@localhost:5432/adsbot
-SUPER_ADMIN_IDS=<sizning Telegram ID ingiz>
+SUPER_ADMIN_IDS=5606183694   # superadmin(lar) — vergul bilan
 NODE_ENV=development
 LOG_LEVEL=debug
 ```
@@ -504,6 +505,32 @@ yopiq Telegram kanalida saqlanadi (bepul va cheksiz):
    → **▶️ Faollashtirish**.
 
    ✅ Shu daqiqadan boshlab rejalashtiruvchi avtomatik ishlaydi.
+
+### Superadmin: admin qo'shish va olib tashlash
+
+Bot ichida: **/admin → 👮 Adminlar**. Bu tugma **faqat superadminga** ko'rinadi va
+har bir amal alohida tekshiriladi — tugmani yashirish o'zi himoya hisoblanmaydi.
+
+| Amal | Qanday |
+|------|--------|
+| **Admin qo'shish** | ➕ Admin qo'shish → `@username`, Telegram ID yoki telefon yuboring. Eng qulayi: o'sha odamning xabarini **forward** qiling |
+| **Rolni tanlash** | 🛠 Admin (to'liq panel) yoki 👁 Operator |
+| **Rolni o'zgartirish** | Admin kartochkasi → 🔁 Rolni o'zgartirish |
+| **Huquqni olib tashlash** | Admin kartochkasi → ❌ Huquqni olib tashlash → tasdiqlash |
+
+**Qoidalar (kodda majburlanadi):**
+
+- 🔒 **SUPERADMIN bot orqali berilmaydi va olinmaydi** — u faqat `SUPER_ADMIN_IDS`
+  (Railway → Variables) bilan boshqariladi. Aks holda kimdir o'zini to'liq nazoratga
+  ko'tarib, sizni qulflab qo'yishi mumkin edi.
+- 👤 Huquq beriladigan odam **avval botga `/start` bosgan bo'lishi shart**. Botda yo'q
+  `@username` uchun yozuv yaratilmaydi (username egallab olish hujumining oldi olinadi).
+- 🙅 O'zingizdan huquqni olib tashlay olmaysiz.
+- 🏢 Reklama beruvchiga admin huquqi berilmaydi — rollar aralashmasligi uchun.
+- 📝 Har bir berish/olish audit jurnaliga yoziladi (kim, kimga, qaysi rol).
+
+Huquq olingan foydalanuvchi oddiy haydovchi (`DRIVER`) roliga qaytadi va panelga
+kira olmaydi. Yangi adminga esa bot avtomatik xabar yuboradi.
 
 ### Haydovchi: kundalik oqim
 

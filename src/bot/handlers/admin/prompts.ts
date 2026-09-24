@@ -38,7 +38,8 @@ export type ChoiceOption = {
 
 const cancelOnlyKeyboard = (): InlineKeyboard => inlineGrid([cancelButton()]);
 
-const isCancel = (ctx: BotContext): boolean => {
+/** Bekor qilish signali: "Bekor qilish" tugmasi yoki /cancel kabi buyruq. */
+export const isCancel = (ctx: BotContext): boolean => {
   const data = ctx.callbackQuery?.data;
   if (data !== undefined) return data === CANCEL_DATA;
   const text = ctx.message?.text?.trim().toLowerCase() ?? '';

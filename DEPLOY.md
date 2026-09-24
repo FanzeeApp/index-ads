@@ -144,7 +144,7 @@ NODE_ENV=production
 LOG_LEVEL=info
 HOST=0.0.0.0
 
-SUPER_ADMIN_IDS=<sizning Telegram ID ingiz>
+SUPER_ADMIN_IDS=5606183694
 
 CHECK_INTERVAL_DAYS=3
 CHECK_DEADLINE_HOURS=24
@@ -163,6 +163,7 @@ PHOTO_MAX_AGE_MINUTES=120
 | `PUBLIC_URL=https://ads-bot.up.railway.app/` | Oxirida `/` bo'lmasin |
 | `BOT_USERNAME=@my_ads_bot` | `@` belgisisiz: `my_ads_bot` |
 | `SUPER_ADMIN_IDS=@username` | Faqat raqamli ID |
+| SUPERADMIN ni bot ichidan berishga urinish | SUPERADMIN faqat shu o'zgaruvchida. Bot ichidan faqat ADMIN/OPERATOR beriladi |
 | `WEBHOOK_SECRET=secret` | Juda qisqa — kamida 16, tavsiya 32+ belgi |
 
 **Save** bosing — Railway avtomatik qayta deploy qiladi.

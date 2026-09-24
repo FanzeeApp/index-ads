@@ -1,7 +1,7 @@
 import type { User } from '@prisma/client';
 import type { MiddlewareFn } from 'grammy';
 import { MINUTE_MS } from '../../config/constants.js';
-import { env } from '../../config/env.js';
+import { isEnvSuperAdmin } from '../../config/superAdmins.js';
 import { describeError } from '../../core/errors.js';
 import { childLogger } from '../../core/logger.js';
 import { prisma } from '../../db/client.js';
@@ -19,9 +19,6 @@ const LAST_SEEN_SWEEP_MS = 15 * MINUTE_MS;
 
 const ADMIN_ROLES: readonly AppRole[] = Object.freeze(['SUPERADMIN', 'ADMIN', 'OPERATOR']);
 
-/** .env dagi super-adminlar — BigInt bilan solishtirmaslik uchun matn ko'rinishida. */
-const SUPER_ADMIN_KEYS: ReadonlySet<string> = new Set(env.SUPER_ADMIN_IDS.map((id) => String(id)));
-
 /** telegramId -> oxirgi `lastSeenAt` yozilgan vaqt. */
 const lastSeenWrites = new Map<number, number>();
 let lastSweepAt = 0;
@@ -34,15 +31,12 @@ const sweepLastSeen = (now: number): void => {
   }
 };
 
-const isSuperAdmin = (telegramId: bigint | null): boolean =>
-  telegramId !== null && SUPER_ADMIN_KEYS.has(telegramId.toString());
-
 /**
  * Rolni aniqlaydi. Tartib muhim: env dagi super-admin har doim ustun,
  * so'ng DB dagi xodim roli, keyin reklama beruvchi, oxirida haydovchi.
  */
 const resolveRole = async (user: User): Promise<AppRole> => {
-  if (isSuperAdmin(user.telegramId) || user.role === 'SUPERADMIN') return 'SUPERADMIN';
+  if (isEnvSuperAdmin(user.telegramId) || user.role === 'SUPERADMIN') return 'SUPERADMIN';
   if (user.role === 'ADMIN' || user.role === 'OPERATOR') return user.role;
   if (user.telegramId === null) return 'GUEST';
 

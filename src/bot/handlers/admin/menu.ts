@@ -6,7 +6,7 @@ import type { BotContext } from '../../bot.js';
 import { CB, callbackPattern } from '../../callbacks.js';
 import { adminMenuKeyboard } from '../../keyboards/admin.js';
 import { backKeyboard } from '../../keyboards/common.js';
-import { answerSafe, safeHandler } from '../guard.js';
+import { answerSafe, authOf, safeHandler } from '../guard.js';
 import { renderPanel } from './shared.js';
 
 /**
@@ -14,7 +14,7 @@ import { renderPanel } from './shared.js';
  * `start.ts` ham shu funksiyani chaqiradi — panelga yagona kirish nuqtasi.
  */
 export const showAdminMenu = async (ctx: BotContext): Promise<void> => {
-  await renderPanel(ctx, t.admin.menuTitle, adminMenuKeyboard());
+  await renderPanel(ctx, t.admin.menuTitle, adminMenuKeyboard(authOf(ctx).role));
 };
 
 /** Sozlamalar hozircha faqat ko'rish uchun — qiymatlar muhit o'zgaruvchilaridan keladi. */
