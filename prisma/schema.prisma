@@ -345,3 +345,14 @@ model UploadSession {
   @@index([checkRequestId])
   @@index([expiresAt])
 }
+
+/// grammY sessiyasi va suhbat holati. Xotira o'rniga bazada saqlanadi —
+/// aks holda har qayta deploy'da yarim tugallangan suhbatlar va inline
+/// tugmalar holati yo'qolib, tugmalar "o'lik" bo'lib qolardi.
+model BotSession {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}

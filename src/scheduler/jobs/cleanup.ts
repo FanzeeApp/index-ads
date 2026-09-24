@@ -10,6 +10,7 @@
 import { childLogger } from '../../core/logger.js';
 import { expireStaleReferrals } from '../../services/referralService.js';
 import { purgeExpired } from '../../services/uploadSessionService.js';
+import { purgeStaleSessions } from '../../bot/middlewares/sessionStorage.js';
 
 const log = childLogger('scheduler:cleanup');
 
@@ -17,11 +18,16 @@ export const CLEANUP_JOB = 'cleanup';
 
 /** Bitta tsikl. Qaytadigan son — tozalangan yozuvlarning umumiy soni. */
 export const cleanup = async (now: Date = new Date()): Promise<number> => {
-  const [sessions, referrals] = await Promise.all([purgeExpired(now), expireStaleReferrals(now)]);
+  const [sessions, referrals, botSessions] = await Promise.all([
+    purgeExpired(now),
+    expireStaleReferrals(now),
+    // Bot sessiyalari endi bazada saqlanadi — ular ham o'sib ketmasligi kerak.
+    purgeStaleSessions(now),
+  ]);
 
-  if (sessions > 0 || referrals > 0) {
-    log.info({ sessions, referrals }, 'Eskirgan yozuvlar tozalandi');
+  if (sessions > 0 || referrals > 0 || botSessions > 0) {
+    log.info({ sessions, referrals, botSessions }, 'Eskirgan yozuvlar tozalandi');
   }
 
-  return sessions + referrals;
+  return sessions + referrals + botSessions;
 };

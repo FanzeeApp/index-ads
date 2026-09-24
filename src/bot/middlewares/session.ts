@@ -1,5 +1,6 @@
 import { session, type MiddlewareFn } from 'grammy';
 import type { BotContext, SessionData } from '../bot.js';
+import { createPrismaSessionStorage } from './sessionStorage.js';
 
 /** Yangi suhbat uchun bo'sh sessiya. Mavjud sessiyaga tegilmaydi. */
 const initialSession = (): SessionData => ({});
@@ -12,13 +13,18 @@ const resolveSessionKey = (ctx: Omit<BotContext, 'session'>): string | undefined
   ctx.from === undefined ? undefined : String(ctx.from.id);
 
 /**
- * Xotiradagi sessiya (default MemorySessionStorage) — bitta Railway instansiyasi uchun yetarli.
- * Qayta ishga tushganda faqat yarim tugallangan suhbat yo'qoladi, biznes ma'lumot PostgreSQL da.
+ * Sessiya PostgreSQL da saqlanadi.
+ *
+ * Xotiradagi saqlash (grammY ning standarti) Railway uchun yaramaydi: har
+ * deploy konteynerni qayta ishga tushiradi va barcha holat o'chadi. Natijada
+ * foydalanuvchi eski xabardagi tugmani bosganda hech narsa bo'lmaydi —
+ * "tugmalar ishlamay qoldi" muammosining aynan shu sababi.
  */
 export const createSessionMiddleware = (): MiddlewareFn<BotContext> =>
   session<SessionData, BotContext>({
     initial: initialSession,
     getSessionKey: resolveSessionKey,
+    storage: createPrismaSessionStorage<SessionData>(),
   });
 
 /**
