@@ -1,0 +1,347 @@
+// Taksi reklama monitoring boti — ma'lumotlar modeli
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Enumlar ───────────────────────────
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  OPERATOR
+  ADVERTISER
+  DRIVER
+}
+
+enum CarStatus {
+  ACTIVE      // faol, reklama bor
+  IDLE        // bo'sh, reklama yo'q
+  MAINTENANCE // ta'mirda
+  ARCHIVED    // hisobdan chiqarilgan
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  FINISHED
+}
+
+enum PlacementStatus {
+  ACTIVE     // reklama mashinada
+  REMOVED    // olib tashlangan
+  SUSPENDED  // vaqtincha to'xtatilgan
+}
+
+enum CheckStatus {
+  PENDING    // yuborildi, javob kutilmoqda
+  SUBMITTED  // haydovchi rasmlarni yubordi
+  APPROVED   // admin/avto tasdiqladi
+  REJECTED   // rad etildi (reklama yo'q/sifatsiz)
+  EXPIRED    // muddat o'tdi
+  CANCELLED  // bekor qilindi
+}
+
+enum PhotoSide {
+  REAR   // orqa
+  LEFT   // chap chet
+  RIGHT  // o'ng chet
+}
+
+enum PhotoOrigin {
+  MINIAPP   // Mini App kamerasidan (ishonchli)
+  TELEGRAM  // bot chatiga yuborilgan (zaxira yo'l)
+  ADMIN     // admin yuklagan etalon rasm
+}
+
+enum ValidationVerdict {
+  OK
+  SUSPECT_OLD      // EXIF vaqti juda eski
+  SUSPECT_NO_EXIF  // EXIF yo'q — galereya/skrinshot ehtimoli
+  SUSPECT_GEO      // GPS yo'q yoki mos emas
+  SKIPPED          // tekshiruv o'chirilgan
+}
+
+enum ReferralStatus {
+  ACTIVE
+  USED
+  REVOKED
+  EXPIRED
+}
+
+// ─────────────────────────── Foydalanuvchilar ───────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  telegramId  BigInt?  @unique
+  username    String?
+  firstName   String?
+  lastName    String?
+  phone       String?
+  languageCode String? @default("uz")
+  role        Role     @default(DRIVER)
+  isBlocked   Boolean  @default(false)
+  lastSeenAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  driver      Driver?
+  advertiser  Advertiser?
+  auditLogs   AuditLog[]      @relation("ActorLogs")
+  reviewedChecks CheckRequest[] @relation("CheckReviewer")
+  createdReferrals Referral[]  @relation("ReferralCreator")
+
+  @@index([role])
+  @@index([username])
+}
+
+model Driver {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName  String?
+  phone     String?
+  notes     String?
+  isActive  Boolean  @default(true)
+  // Bog'lanmagan haydovchi (admin oldindan kiritgan, hali /start bosmagan)
+  pendingUsername String?
+  pendingPhone    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cars      Car[]
+  referrals Referral[]
+
+  @@index([pendingUsername])
+  @@index([pendingPhone])
+}
+
+model Advertiser {
+  id          String   @id @default(cuid())
+  userId      String?  @unique
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  companyName String
+  contactName String?
+  contactPhone String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  // Telegramga ulanmagan reklama beruvchi uchun taklif kodi
+  inviteCode  String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns   Campaign[]
+
+  @@index([companyName])
+}
+
+// ─────────────────────────── Avtopark ───────────────────────────
+
+model Car {
+  id          String    @id @default(cuid())
+  plateNumber String    @unique          // 01A123BC
+  model       String?                    // Cobalt, Nexia-3 ...
+  color       String?
+  status      CarStatus @default(IDLE)
+  driverId    String?
+  driver      Driver?   @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  placements  Placement[]
+  photos      Photo[]     @relation("CarReferencePhotos")
+  referrals   Referral[]
+  checks      CheckRequest[]
+
+  @@index([status])
+  @@index([driverId])
+}
+
+model Campaign {
+  id           String         @id @default(cuid())
+  advertiserId String
+  advertiser   Advertiser     @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  status       CampaignStatus @default(DRAFT)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  // Shu kampaniya uchun tekshiruv davriyligi (kun). null => global sozlama
+  checkIntervalDays Int?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  placements   Placement[]
+  checks       CheckRequest[]
+
+  @@index([status])
+  @@index([advertiserId])
+}
+
+/// Reklamaning aniq mashinaga joylanishi — tekshiruvlarning manbasi
+model Placement {
+  id          String          @id @default(cuid())
+  campaignId  String
+  campaign    Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  carId       String
+  car         Car             @relation(fields: [carId], references: [id], onDelete: Cascade)
+  status      PlacementStatus @default(ACTIVE)
+  installedAt DateTime        @default(now())
+  removedAt   DateTime?
+  /// Oxirgi tekshiruv so'ralgan vaqt — rejalashtiruvchi shunga qaraydi
+  lastCheckAt DateTime?
+  /// Keyingi tekshiruv vaqti (denormalizatsiya — indeks bo'yicha tez tanlash)
+  nextCheckAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  checks      CheckRequest[]
+  photos      Photo[]         @relation("PlacementReferencePhotos")
+
+  @@unique([campaignId, carId])
+  @@index([status, nextCheckAt])
+  @@index([carId])
+}
+
+// ─────────────────────────── Tekshiruvlar ───────────────────────────
+
+model CheckRequest {
+  id           String      @id @default(cuid())
+  placementId  String
+  placement    Placement   @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  carId        String
+  car          Car         @relation(fields: [carId], references: [id], onDelete: Cascade)
+  campaignId   String
+  campaign     Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  status       CheckStatus @default(PENDING)
+
+  requestedAt  DateTime    @default(now())
+  dueAt        DateTime
+  submittedAt  DateTime?
+  reviewedAt   DateTime?
+  reviewerId   String?
+  reviewer     User?       @relation("CheckReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  rejectReason String?
+
+  /// Haydovchiga yuborilgan xabar — tahrirlash/o'chirish uchun
+  promptChatId    BigInt?
+  promptMessageId Int?
+  remindersSent   Int     @default(0)
+  /// Reklama beruvchiga hisobot yuborildimi
+  reportedAt   DateTime?
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  photos       Photo[]
+
+  @@index([status, dueAt])
+  @@index([placementId, requestedAt])
+  @@index([campaignId, status])
+}
+
+model Photo {
+  id             String      @id @default(cuid())
+  side           PhotoSide
+  origin         PhotoOrigin @default(MINIAPP)
+
+  /// Telegram file_id — qayta yuborish uchun asosiy manba
+  telegramFileId String?
+  /// Telegram file_unique_id — dublikatni aniqlash uchun
+  fileUniqueId   String?
+  /// Tashqi saqlash (S3/R2) havolasi — ixtiyoriy
+  storageUrl     String?
+
+  width          Int?
+  height         Int?
+  sizeBytes      Int?
+  /// Faylning SHA-256 xeshi — bir xil rasmni qayta yuborishni aniqlaydi
+  sha256         String?
+
+  /// EXIF dan olingan suratga olingan vaqt
+  takenAt        DateTime?
+  latitude       Float?
+  longitude      Float?
+  accuracyM      Float?
+  verdict        ValidationVerdict @default(SKIPPED)
+  verdictNote    String?
+
+  checkRequestId String?
+  checkRequest   CheckRequest? @relation(fields: [checkRequestId], references: [id], onDelete: Cascade)
+  /// Mashinaning etalon (admin yuklagan) rasmi
+  carId          String?
+  car            Car?          @relation("CarReferencePhotos", fields: [carId], references: [id], onDelete: Cascade)
+  /// Joylashtirish paytidagi etalon rasm
+  placementId    String?
+  placement      Placement?    @relation("PlacementReferencePhotos", fields: [placementId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime    @default(now())
+
+  @@index([checkRequestId, side])
+  @@index([sha256])
+  @@index([fileUniqueId])
+}
+
+// ─────────────────────────── Referal ───────────────────────────
+
+model Referral {
+  id         String         @id @default(cuid())
+  token      String         @unique
+  carId      String?
+  car        Car?           @relation(fields: [carId], references: [id], onDelete: Cascade)
+  driverId   String?
+  driver     Driver?        @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  status     ReferralStatus @default(ACTIVE)
+  createdById String?
+  createdBy  User?          @relation("ReferralCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  expiresAt  DateTime?
+  usedAt     DateTime?
+  usedByTelegramId BigInt?
+  createdAt  DateTime       @default(now())
+
+  @@index([status, expiresAt])
+  @@index([carId])
+}
+
+// ─────────────────────────── Xizmat ───────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation("ActorLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  action    String   // "car.create", "check.approve" ...
+  entity    String?  // "Car"
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+/// Kaliti bo'yicha sozlamalar — runtime da o'zgartirish uchun
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// Mini App sessiyalari — bir martalik yuklash tokeni
+model UploadSession {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  checkRequestId String
+  telegramId     BigInt
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([checkRequestId])
+  @@index([expiresAt])
+}

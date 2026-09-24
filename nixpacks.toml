@@ -1,0 +1,17 @@
+# Railway (Nixpacks) qurish sozlamasi.
+#
+# NODE_ENV=production bo'lganda `npm ci` devDependencies ni tashlab ketadi,
+# natijada `tsc` va `prisma` topilmay build yiqiladi. Shuning uchun install
+# bosqichida `--include=dev` aniq ko'rsatilgan.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "openssl"]
+
+[phases.install]
+cmds = ["npm ci --include=dev"]
+
+[phases.build]
+cmds = ["npx prisma generate", "npm run build"]
+
+[start]
+cmd = "npm run prisma:migrate && npm start"
