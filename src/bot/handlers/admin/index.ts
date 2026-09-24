@@ -16,6 +16,7 @@ import { driverSearchConversation, registerDriverHandlers } from './drivers.js';
 import { registerMenuHandlers, showAdminMenu } from './menu.js';
 import { isAdminUpdate } from './routing.js';
 import { CONVERSATION, CONVERSATION_IDLE_TTL_MS, type AdminConversation } from './shared.js';
+import { registerDiagnosticsHandlers } from './diagnostics.js';
 import { registerStatsHandlers } from './stats.js';
 
 const log = childLogger('admin:router');
@@ -70,6 +71,7 @@ export const registerAdminHandlers = (bot: Bot<BotContext>): void => {
   registerCheckHandlers(panel);
   registerBroadcastHandlers(panel);
   registerStatsHandlers(panel);
+  registerDiagnosticsHandlers(panel);
   registerAdminUserHandlers(panel);
 
   bot.filter(isAdminUpdate).use(panel);
