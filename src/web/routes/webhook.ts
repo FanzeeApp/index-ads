@@ -19,6 +19,7 @@ const log = childLogger('web:webhook');
 
 const SECRET_HEADER = 'x-telegram-bot-api-secret-token';
 const HTTP_UNAUTHORIZED = 401;
+const HTTP_NOT_FOUND = 404;
 
 /** grammY update ni qayta ishlashga shuncha vaqt beradi (Telegram 60s kutadi). */
 const WEBHOOK_TIMEOUT_MS = 20_000;
@@ -65,6 +66,26 @@ export const registerWebhookRoutes = async (app: FastifyInstance, bot?: Bot<BotC
         return;
       }
       await handleUpdate(request, reply);
+    },
+  );
+
+  /**
+   * Diagnostika: Telegram ESKI yo'lga (masalan, sir o'zgartirilgandan keyin
+   * qayd etilgan havolaga) kelsa, Fastify jimgina 404 qaytarardi va sabab
+   * loglarda umuman qolmasdi. Bu yo'nalish shu holatni ko'rinadigan qiladi.
+   * Statik yo'l (haqiqiy sir) parametrli yo'ldan ustun turadi, shuning uchun
+   * qonuniy so'rovlar bu yerga tushmaydi.
+   */
+  app.post(
+    '/webhook/:candidate',
+    { config: { rateLimit: false } },
+    async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+      log.error(
+        { hasSecretHeader: typeof request.headers[SECRET_HEADER] === 'string' },
+        "Webhook NOTO'G'RI yo'lga keldi — Telegram'dagi havola eskirgan. " +
+          'PUBLIC_URL yoki WEBHOOK_SECRET o\'zgargan bo\'lsa, botni qayta ishga tushiring.',
+      );
+      await reply.code(HTTP_NOT_FOUND).send({ ok: false });
     },
   );
 

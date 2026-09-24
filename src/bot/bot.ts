@@ -14,6 +14,7 @@ import { authMiddleware } from './middlewares/auth.js';
 import { errorBoundary } from './middlewares/errorBoundary.js';
 import { rateLimit } from './middlewares/rateLimit.js';
 import { createSessionMiddleware } from './middlewares/session.js';
+import { updateLog } from './middlewares/updateLog.js';
 
 const log = childLogger('bot:core');
 
@@ -75,6 +76,8 @@ export const createBot = (): Bot<BotContext> => {
   if (isWired) return bot;
   isWired = true;
 
+  // Eng birinchi: har bir yangilanish qayd etilsin (xato bo'lsa ham).
+  bot.use(updateLog());
   bot.use(errorBoundary());
   bot.use(rateLimit());
   bot.use(createSessionMiddleware());
